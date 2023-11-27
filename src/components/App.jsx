@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchSearchQuery } from 'Api/Api';
 import Notiflix from 'notiflix';
 import { Searchbar } from './Searchbar/Searchbar';
@@ -6,78 +6,94 @@ import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Loader } from './Loader/Loader';
 import { Button } from './Button/Button';
 
-export class App extends Component {
-  state = {
+export const App = () => {
+  /* state = {
     searchText: '',
     page: 1,
     images: null,
     loadMore: false,
     isLoading: false,
-  };
+  }; */
 
-  handleSubmit = e => {
+  const [searchText, setSearchText] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [loadMore, setLoadMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const prevSearchText = useRef('');
+  const prevPage = useRef(1);
+
+  const handleSubmit = e => {
     e.preventDefault();
     const searchValue = e.currentTarget.elements.search.value.trim();
     if (searchValue === '') {
       return Notiflix.Notify.failure(
         'Sorry, there are no images with your search query. Please, try again!'
       );
+    } else if (searchValue === searchText) {
+      return Notiflix.Notify.failure(`You are already viewing this images`);
     }
-    this.setState({ searchText: searchValue, page: 1, images: null });
+    /* this.setState({ searchText: searchValue, page: 1, images: null }); */
+    setSearchText(searchValue);
+    setPage(1);
+    setImages(null);
   };
 
-  handleClick = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const handleClick = () => {
+    setPage(prevPage + 1);
   };
 
-  componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.searchText !== this.state.searchText ||
-      prevState.page !== this.state.page
-    ) {
-      this.setState({ isLoading: true });
-      fetchSearchQuery(this.state.searchText, this.state.page)
+  useEffect(() => {
+    if (prevSearchText.current !== searchText || prevPage.current !== page) {
+      setIsLoading(true);
+      fetchSearchQuery(searchText, page)
         .then(response => {
-          if (response.data.total !== 0) {
-            this.setState(prevState => ({
-              images: prevState.images
-                ? [...prevState.images, ...response.data.hits]
-                : [...response.data.hits],
-              loadMore:
-                this.state.page < Math.ceil(response.data.totalHits / 12),
-            }));
+          const { data } = response;
+          if (data && data.hits && Array.isArray(data.hits)) {
+            if (data.hits.length > 0) {
+              setImages(prevImages =>
+                prevImages ? [...prevImages, ...data.hits] : data.hits
+              );
+              setLoadMore(page < Math.ceil(data.totalHits / 12));
+            } else {
+              setLoadMore(false);
+              Notiflix.Notify.warning('There are no images for your query');
+            }
           } else {
-            this.setState({ loadMore: false });
-            Notiflix.Notify.warning('There is no images for your query');
+            setLoadMore(false);
+            Notiflix.Notify.failure('Failed to fetch images');
           }
         })
-        .catch(error => console.log(error))
+        .catch(error => {
+          console.log(error);
+          setLoadMore(false);
+          Notiflix.Notify.failure('Failed to fetch images');
+        })
         .finally(() => {
-          this.setState({ isLoading: false });
+          setIsLoading(false);
         });
     }
-  }
-  render() {
-    const { isLoading, images, loadMore } = this.state;
-    return (
-      <div
-        style={{
-          height: '100vh',
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-          gridGap: '16px',
-          paddingBottom: '24px',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: 40,
-          color: '#010101',
-        }}
-      >
-        <Searchbar onSubmit={this.handleSubmit} />
-        {isLoading && <Loader />}
-        {images && <ImageGallery data={images} />}
-        {loadMore && <Button onClick={this.handleClick} />}
-      </div>
-    );
-  }
-}
+  }, [page, searchText]);
+
+  return (
+    <div
+      style={{
+        height: '100vh',
+        display: 'grid',
+        gridTemplateColumns: '1fr',
+        gridGap: '16px',
+        paddingBottom: '24px',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontSize: 40,
+        color: '#010101',
+      }}
+    >
+      <Searchbar onSubmit={handleSubmit} />
+      {isLoading && <Loader />}
+      {images && <ImageGallery data={images} />}
+      {loadMore && <Button onClick={handleClick} />}
+    </div>
+  );
+};
