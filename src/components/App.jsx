@@ -22,7 +22,6 @@ export const App = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const prevSearchText = useRef('');
-  const prevPage = useRef(1);
 
   const handleSubmit = e => {
     e.preventDefault();
@@ -34,7 +33,6 @@ export const App = () => {
     } else if (searchValue === searchText) {
       return Notiflix.Notify.failure(`You are already viewing this images`);
     }
-    /* this.setState({ searchText: searchValue, page: 1, images: null }); */
     setSearchText(searchValue);
     setPage(1);
     setImages(null);
@@ -45,7 +43,7 @@ export const App = () => {
   };
 
   useEffect(() => {
-    if (prevSearchText.current !== searchText || prevPage.current !== page) {
+    if (prevSearchText.current !== searchText) {
       setIsLoading(true);
       setImages([]);
       fetchSearchQuery(searchText, page)
