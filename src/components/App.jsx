@@ -41,12 +41,13 @@ export const App = () => {
   };
 
   const handleClick = () => {
-    setPage(prevPage + 1);
+    setPage(prevPage => prevPage + 1);
   };
 
   useEffect(() => {
     if (prevSearchText.current !== searchText || prevPage.current !== page) {
       setIsLoading(true);
+      setImages([]);
       fetchSearchQuery(searchText, page)
         .then(response => {
           const { data } = response;
