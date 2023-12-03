@@ -45,7 +45,6 @@ export const App = () => {
   useEffect(() => {
     if (prevSearchText.current !== searchText) {
       setIsLoading(true);
-      setImages([]);
       fetchSearchQuery(searchText, page)
         .then(response => {
           const { data } = response;
